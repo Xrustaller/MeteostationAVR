@@ -1,6 +1,6 @@
 // ------------------------- НАСТРОЙКИ --------------------
 #define RESET_CLOCK 0       // сброс часов на время загрузки прошивки (для модуля с несъёмной батарейкой). Не забудь поставить 0 и прошить ещё раз!
-#define SENS_TIME 30000     // время обновления показаний сенсоров на экране, миллисекунд
+#define SENS_TIME 10000     // время обновления показаний сенсоров на экране, миллисекунд
 #define LED_MODE 0          // тип RGB светодиода: 0 - главный катод, 1 - главный анод
 
 // управление яркостью
@@ -26,6 +26,8 @@
 
 // если дисплей не заводится - поменяйте адрес (строка 54)
 
+#define BUS_ID 4
+
 // пины
 #define BACKLIGHT 10
 #define PHOTO A1
@@ -44,6 +46,12 @@
 // библиотеки
 #include <Arduino.h>
 #include <Wire.h>
+#include <ModbusRtu.h>
+
+Modbus bus(BUS_ID, 0, 0);
+int8_t state = 0;
+uint16_t temp[3] = { 0, 0, 0 };
+
 #include <LiquidCrystal_I2C.h>
 
 #if (DISPLAY_TYPE == 1)
@@ -182,11 +190,20 @@ void readSensors() {
 #if (BM_TYPE == 0)
     bme.takeForcedMeasurement();
     dispHum = bme.readHumidity();
+    temp[2] = dispHum;
 #endif
     dispTemp = bme.readTemperature();
+    temp[0] = dispTemp;
     dispPres = (float)bme.readPressure() * 0.00750062;
+    temp[1] = dispPres;
 
     dispCO2 = mhz19.getPPM();
+    if (dispCO2 < 0) {
+        temp[3] = 0;
+    }
+    else {
+        temp[3] = dispCO2;
+    }
     if (dispCO2 < 800) setLED(2);
     else if (dispCO2 < 1200) setLED(3);
     else if (dispCO2 >= 1200) setLED(1);
@@ -428,7 +445,7 @@ void loadClock() {
 }
 
 void setup() {
-    Serial.begin(9600);
+    bus.begin(19200);
 
     pinMode(BACKLIGHT, OUTPUT);
     pinMode(LED_COM, OUTPUT);
@@ -451,55 +468,45 @@ void setup() {
 
     lcd.setCursor(0, 0);
     lcd.print(F("MHZ-19... "));
-    Serial.print(F("MHZ-19... "));
     mhz19.begin(MHZ_RX, MHZ_TX);
     mhz19.setAutoCalibration(false);
     mhz19.getStatus();    // первый запрос, в любом случае возвращает -1
     delay(500);
     if (mhz19.getStatus() == 0) {
         lcd.print(F("OK"));
-        Serial.println(F("OK"));
     }
     else {
         lcd.print(F("ERROR"));
-        Serial.println(F("ERROR"));
         status = false;
     }
 
     setLED(2);
     lcd.setCursor(0, 1);
     lcd.print(F("RTC... "));
-    Serial.print(F("RTC... "));
     delay(50);
     if (rtc.begin()) {
         lcd.print(F("OK"));
-        Serial.println(F("OK"));
     }
     else {
         lcd.print(F("ERROR"));
-        Serial.println(F("ERROR"));
         status = false;
     }
 
     setLED(3);
     lcd.setCursor(0, 2);
     lcd.print(F("BME280... "));
-    Serial.print(F("BME280... "));
     delay(50);
 #if (BM_TYPE == 0)
     if (bme.begin(0x77, &Wire)) {
         lcd.print(F("OK"));
-        Serial.println(F("OK"));
     }
 #else
     if (bme.begin(BMP280_ADDRESS_ALT, BMP280_CHIPID)) {
         lcd.print(F("OK"));
-        Serial.println(F("OK"));
     }
 #endif
     else {
         lcd.print(F("ERROR"));
-        Serial.println(F("ERROR"));
         status = false;
     }
 
@@ -507,18 +514,15 @@ void setup() {
     lcd.setCursor(0, 3);
     if (status) {
         lcd.print(F("All good"));
-        Serial.println(F("All good"));
     }
     else {
         lcd.print(F("Check wires!"));
-        Serial.println(F("Check wires!"));
     }
     while (1) {
         lcd.setCursor(14, 1);
         lcd.print("P:    ");
         lcd.setCursor(16, 1);
         lcd.print(analogRead(PHOTO), 1);
-        Serial.println(analogRead(PHOTO));
         delay(300);
     }
 #else
@@ -568,6 +572,8 @@ void setup() {
 }
 
 void loop() {
+    state = bus.poll(temp, 4);
+
     if (brightTimer.isReady()) checkBrightness(); // яркость
     if (sensorsTimer.isReady()) readSensors();    // читаем показания датчиков с периодом SENS_TIME
 
