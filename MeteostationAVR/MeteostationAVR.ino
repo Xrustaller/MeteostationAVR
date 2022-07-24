@@ -27,28 +27,26 @@
 // если дисплей не заводится - поменяйте адрес (строка 54)
 
 #define BUS_ID 4
+#define PIN_REDE A1
 
 // пины
-#define BACKLIGHT 10
-#define PHOTO A1
+#define PIN_BACK_LIGHT 10
+#define PIN_PHOTO A2
 
-#define MHZ_RX 5
-#define MHZ_TX 6
+#define PIN_MHZ_RX 5
+#define PIN_MHZ_TX 6
 
-#define LED_COM 4
-#define LED_R 9
-#define LED_G 7
-#define LED_B 8
-
-#define BL_PIN 10     // пин подсветки дисплея
-#define PHOTO_PIN 0   // пин фоторезистора
+#define PIN_LED_COM 4
+#define PIN_LED_R 9
+#define PIN_LED_G 7
+#define PIN_LED_B 8
 
 // библиотеки
 #include <Arduino.h>
 #include <Wire.h>
 #include <ModbusRtu.h>
 
-Modbus bus(BUS_ID, 0, 0);
+Modbus bus(BUS_ID, 0, PIN_REDE);
 int8_t state = 0;
 uint16_t temp[3] = { 0, 0, 0 };
 
@@ -138,35 +136,35 @@ byte LED_OFF = (255 - LED_BRIGHT_MIN);
 void setLED(byte color) {
     // сначала всё выключаем
     if (!LED_MODE) {
-        analogWrite(LED_R, 0);
-        analogWrite(LED_G, 0);
-        analogWrite(LED_B, 0);
+        analogWrite(PIN_LED_R, 0);
+        analogWrite(PIN_LED_G, 0);
+        analogWrite(PIN_LED_B, 0);
     }
     else {
-        analogWrite(LED_R, 255);
-        analogWrite(LED_G, 255);
-        analogWrite(LED_B, 255);
+        analogWrite(PIN_LED_R, 255);
+        analogWrite(PIN_LED_G, 255);
+        analogWrite(PIN_LED_B, 255);
     }
     switch (color) {    // 0 выкл, 1 красный, 2 зелёный, 3 синий (или жёлтый)
     case 0:
         break;
-    case 1: analogWrite(LED_R, LED_ON);
+    case 1: analogWrite(PIN_LED_R, LED_ON);
         break;
-    case 2: analogWrite(LED_G, LED_ON);
+    case 2: analogWrite(PIN_LED_G, LED_ON);
         break;
     case 3:
-        if (!BLUE_YELLOW) analogWrite(LED_B, LED_ON);
+        if (!BLUE_YELLOW) analogWrite(PIN_LED_B, LED_ON);
         else {
-            analogWrite(LED_R, LED_ON - 50);    // чутка уменьшаем красный
-            analogWrite(LED_G, LED_ON);
+            analogWrite(PIN_LED_R, LED_ON - 50);    // чутка уменьшаем красный
+            analogWrite(PIN_LED_G, LED_ON);
         }
         break;
     }
 }
 
 void checkBrightness() {
-    if (analogRead(PHOTO) < BRIGHT_THRESHOLD) {   // если темно
-        analogWrite(BACKLIGHT, LCD_BRIGHT_MIN);
+    if (analogRead(PIN_PHOTO) < BRIGHT_THRESHOLD) {   // если темно
+        analogWrite(PIN_BACK_LIGHT, LCD_BRIGHT_MIN);
 #if (LED_MODE == 0)
         LED_ON = (LED_BRIGHT_MIN);
 #else
@@ -174,7 +172,7 @@ void checkBrightness() {
 #endif
     }
     else {                                      // если светло
-        analogWrite(BACKLIGHT, LCD_BRIGHT_MAX);
+        analogWrite(PIN_BACK_LIGHT, LCD_BRIGHT_MAX);
 #if (LED_MODE == 0)
         LED_ON = (LED_BRIGHT_MAX);
 #else
@@ -447,15 +445,15 @@ void loadClock() {
 void setup() {
     bus.begin(19200);
 
-    pinMode(BACKLIGHT, OUTPUT);
-    pinMode(LED_COM, OUTPUT);
-    pinMode(LED_R, OUTPUT);
-    pinMode(LED_G, OUTPUT);
-    pinMode(LED_B, OUTPUT);
+    pinMode(PIN_BACK_LIGHT, OUTPUT);
+    pinMode(PIN_LED_COM, OUTPUT);
+    pinMode(PIN_LED_R, OUTPUT);
+    pinMode(PIN_LED_G, OUTPUT);
+    pinMode(PIN_LED_B, OUTPUT);
     setLED(0);
 
-    digitalWrite(LED_COM, LED_MODE);
-    analogWrite(BACKLIGHT, LCD_BRIGHT_MAX);
+    digitalWrite(PIN_LED_COM, LED_MODE);
+    analogWrite(PIN_BACK_LIGHT, LCD_BRIGHT_MAX);
 
     lcd.init();
     lcd.backlight();
@@ -468,7 +466,7 @@ void setup() {
 
     lcd.setCursor(0, 0);
     lcd.print(F("MHZ-19... "));
-    mhz19.begin(MHZ_RX, MHZ_TX);
+    mhz19.begin(PIN_MHZ_RX, PIN_MHZ_TX);
     mhz19.setAutoCalibration(false);
     mhz19.getStatus();    // первый запрос, в любом случае возвращает -1
     delay(500);
@@ -522,11 +520,11 @@ void setup() {
         lcd.setCursor(14, 1);
         lcd.print("P:    ");
         lcd.setCursor(16, 1);
-        lcd.print(analogRead(PHOTO), 1);
+        lcd.print(analogRead(PIN_PHOTO), 1);
         delay(300);
     }
 #else
-    mhz19.begin(MHZ_RX, MHZ_TX);
+    mhz19.begin(PIN_MHZ_RX, PIN_MHZ_TX);
     mhz19.setAutoCalibration(false);
     rtc.begin();
 #if (BM_TYPE == 0)
