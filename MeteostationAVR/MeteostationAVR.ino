@@ -27,11 +27,11 @@
 // если дисплей не заводится - поменяйте адрес (строка 54)
 
 #define BUS_ID 4
-#define PIN_REDE A1
+#define PIN_REDE A2
 
 // пины
 #define PIN_BACK_LIGHT 10
-#define PIN_PHOTO A2
+#define PIN_PHOTO A1
 
 #define PIN_MHZ_RX 5
 #define PIN_MHZ_TX 6
@@ -40,6 +40,11 @@
 #define PIN_LED_R 9
 #define PIN_LED_G 7
 #define PIN_LED_B 8
+
+#define PIN_HOUR A0
+#define PIN_MIN A2
+#define PIN_PLUS A3
+#define PIN_MINUS A4
 
 // библиотеки
 #include <Arduino.h>
