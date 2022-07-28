@@ -53,7 +53,7 @@
 
 Modbus bus(BUS_ID, 0, PIN_REDE);
 int8_t state = 0;
-uint16_t temp[3] = { 0, 0, 0 };
+uint16_t temp[4] = { 0, 0, 0, 0 };
 
 #include <LiquidCrystal_I2C.h>
 
